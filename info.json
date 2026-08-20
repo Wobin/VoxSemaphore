@@ -1,0 +1,19 @@
+{
+	"name": "Vox Semaphore",
+	"description": "Broadcasts your emote to the squad so everyone running the mod sees it played on your character in-mission.",
+	"version": "1.4",
+	"author": "Wobin",
+	"homepage": "https://www.nexusmods.com/warhammer40kdarktide/mods/1133",
+	"source": "https://github.com/Wobin/VoxSemaphore",
+	"funding": {
+		"kofi": "https://ko-fi.com/wobin_dwonderdog"
+	},
+	"nexusId": "1133",
+	"order": {
+		"require": [],
+		"this_after": [
+			"SimpleAssets"
+		],
+		"this_before": []
+	}
+}

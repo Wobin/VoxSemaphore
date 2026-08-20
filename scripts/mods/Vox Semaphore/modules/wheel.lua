@@ -271,7 +271,12 @@ local function category_label(key)
 end
 
 local function build_model(unit, excluded)
-	local _, playable = ensure_probe(unit)
+	local breed_name, playable = ensure_probe(unit)
+
+	if breed_name then
+		emote_inventory.resolve(breed_name)
+	end
+
 	local order = inventory.order
 	local by_category = {}
 	local seen = {}
@@ -279,7 +284,8 @@ local function build_model(unit, excluded)
 
 	for i = 1, #order do
 		local event = order[i]
-		local allowed = true
+		local record = inventory.by_event[event]
+		local allowed = record ~= nil
 
 		if playable and playable[event] == false then
 			allowed = false
@@ -288,6 +294,7 @@ local function build_model(unit, excluded)
 		if excluded and excluded[event] then
 			allowed = false
 		end
+
 
 		if allowed then
 			local key = category_of(event)

@@ -10,9 +10,41 @@ local CANCEL_INPUTS = {
 	"grenade_ability_hold",
 }
 
+local TURN_LIMIT = math.pi * 25 / 180
+local math_pi = math.pi
+local math_abs = math.abs
+local math_atan2 = math.atan2
+
 local M = {}
 
 local watched = {}
+
+local function look_yaw(unit_data)
+	local component = unit_data.read_component and unit_data:read_component("first_person")
+	local rotation = component and component.rotation
+
+	if not rotation then
+		return nil
+	end
+
+	local forward = Quaternion.forward(rotation)
+
+	return math_atan2(Vector3.y(forward), Vector3.x(forward))
+end
+
+local function yaw_delta(a, b)
+	local d = a - b
+
+	while d > math_pi do
+		d = d - math_pi * 2
+	end
+
+	while d < -math_pi do
+		d = d + math_pi * 2
+	end
+
+	return math_abs(d)
+end
 
 function M.watch(unit, now)
 	local unit_data = ScriptUnit.has_extension(unit, "unit_data_system")
@@ -36,6 +68,7 @@ function M.watch(unit, now)
 		state_name = unit_data:read_component("character_state").state_name,
 		grace_until = now + GRACE,
 		baseline = baseline,
+		look_yaw = look_yaw(unit_data),
 	}
 
 	return true
@@ -70,6 +103,30 @@ function M.should_cancel(unit, now)
 
 	if now < record.grace_until then
 		return false
+	end
+
+	local camera = mod.camera
+
+	if record.look_yaw and camera and camera.mode and camera.mode() == "facing" then
+		local yaw = look_yaw(unit_data)
+
+		if yaw then
+			local since_start = yaw_delta(yaw, record.look_yaw)
+			local body = Quaternion.forward(Unit.world_rotation(unit, 1))
+			local vs_body = yaw_delta(yaw, math_atan2(Vector3.y(body), Vector3.x(body)))
+
+			if not record.next_turn_trace or now >= record.next_turn_trace then
+				record.next_turn_trace = now + 0.5
+
+				mod.trace("facing turn: since_start=%.0f vs_body=%.0f (limit %.0f)",
+					math.deg(since_start), math.deg(vs_body), math.deg(TURN_LIMIT))
+			end
+
+			if since_start > TURN_LIMIT then
+				return true, string.format("turned %.0f degrees from the facing camera",
+					math.deg(since_start))
+			end
+		end
 	end
 
 	local input = ScriptUnit.has_extension(unit, "input_system")

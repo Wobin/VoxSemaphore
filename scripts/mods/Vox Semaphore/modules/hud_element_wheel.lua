@@ -163,10 +163,35 @@ HudElementVoxSemaphoreWheel._find_slice_passes = function(self, widget)
 	return found
 end
 
+local art_state = {}
+
+local function note_art(rank, ok, detail)
+	local key = tostring(rank)
+
+	if art_state[key] == ok then
+		return
+	end
+
+	art_state[key] = ok
+
+	if ok then
+		mod.trace("petal art: %s bound (%s)", key, tostring(detail))
+
+		return
+	end
+
+	mod.trace("petal art: %s MISSING (%s) - those petals keep the previously bound rank's size, "
+		.. "so they draw too wide and overlap, while the clickable wedge stays at the correct "
+		.. "spacing and is much smaller than it looks. Check SimpleAssets is installed and that "
+		.. "assets/slice_%s*.png shipped.", key, tostring(detail), key)
+end
+
 HudElementVoxSemaphoreWheel._bind_slice_art = function(self, record, rank)
 	local art = mod.slice_art
 
 	if not art then
+		note_art(rank, false, "slice_art module not loaded")
+
 		return false
 	end
 
@@ -174,8 +199,13 @@ HudElementVoxSemaphoreWheel._bind_slice_art = function(self, record, rank)
 	local size = art.size(rank)
 
 	if not (set and size) then
+		note_art(rank, false, string.format("textures=%s size=%s ready=%s",
+			tostring(set ~= nil), tostring(size ~= nil), tostring(art.is_ready and art.is_ready())))
+
 		return false
 	end
+
+	note_art(rank, true, string.format("%dx%d", size[1], size[2]))
 
 	local widget = record.widget
 

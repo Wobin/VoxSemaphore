@@ -423,7 +423,13 @@ function M.update()
 				camera.update_facing(unit)
 			end
 
-			finished = cancel.should_cancel(unit, now)
+			local reason
+
+			finished, reason = cancel.should_cancel(unit, now)
+
+			if finished then
+				mod.trace("emote cancelled: %s", tostring(reason))
+			end
 		end
 
 		if finished then

@@ -78,7 +78,7 @@ local function subscribe()
 
 	local state = mod:persistent_table("roster")
 
-	state.unsubscribe = api.on_update(function()
+	state.unsubscribe = api.on_update(mod.vox_id, function()
 		dirty = true
 	end)
 

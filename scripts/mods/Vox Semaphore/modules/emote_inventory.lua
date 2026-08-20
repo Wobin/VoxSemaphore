@@ -22,6 +22,7 @@ local data = {
 M.data = data
 
 local generation = 0
+local EMPTY_VARIANTS = {}
 
 local function local_player()
 	local player_manager = Managers.player
@@ -49,20 +50,6 @@ local function item_label(item)
 	return localization:localize(display_name)
 end
 
-local function local_breed_name()
-	local player = local_player()
-	local unit = player and player.player_unit
-
-	if not unit or not Unit.alive(unit) then
-		return nil
-	end
-
-	local unit_data = ScriptUnit.has_extension(unit, "unit_data_system")
-	local breed_name = unit_data and unit_data:breed_name()
-
-	return type(breed_name) == "string" and breed_name or nil
-end
-
 local function suits_breed(item, breed_name)
 	local breeds = item and item.breeds
 
@@ -82,30 +69,23 @@ end
 local function accept_inventory(items)
 	local by_event = {}
 	local order = {}
-	local breed_name = local_breed_name()
 
 	for _, item in pairs(items) do
 		local event = item and item.animation_event
 
 		if type(event) == "string" and event ~= "" then
 			local existing = by_event[event]
-			local suited = suits_breed(item, breed_name)
 
 			if not existing then
-				by_event[event] = {
+				existing = {
 					event = event,
-					label = item_label(item) or event,
-					icon = item.icon,
-					item = item,
-					suited = suited,
+					variants = {},
 				}
+				by_event[event] = existing
 				order[#order + 1] = event
-			elseif suited and not existing.suited then
-				existing.label = item_label(item) or event
-				existing.icon = item.icon
-				existing.item = item
-				existing.suited = true
 			end
+
+			existing.variants[#existing.variants + 1] = item
 		end
 	end
 
@@ -113,6 +93,7 @@ local function accept_inventory(items)
 
 	data.by_event = by_event
 	data.order = order
+	data.resolved_for = nil
 	data.ready = true
 	data.failed = false
 	data.fetching = false
@@ -195,6 +176,34 @@ function M.prefetch()
 	return true
 end
 
+function M.resolve(breed_name)
+	if data.resolved_for == breed_name then
+		return false
+	end
+
+	data.resolved_for = breed_name
+
+	for _, record in pairs(data.by_event) do
+		local variants = record.variants or EMPTY_VARIANTS
+		local chosen, suited = variants[1], false
+
+		for i = 1, #variants do
+			if suits_breed(variants[i], breed_name) then
+				chosen, suited = variants[i], true
+
+				break
+			end
+		end
+
+		record.item = chosen
+		record.suited = suited
+		record.icon = chosen and chosen.icon
+		record.label = (chosen and item_label(chosen)) or record.event
+	end
+
+	return true
+end
+
 function M.clear()
 	generation = generation + 1
 
@@ -204,9 +213,42 @@ function M.clear()
 	data.fetching = false
 	data.by_event = {}
 	data.order = {}
+	data.resolved_for = nil
+end
+
+local function local_breed_name()
+	local player = local_player()
+	local unit = player and player.player_unit
+
+	if not unit or not Unit.alive(unit) then
+		return nil
+	end
+
+	local unit_data = ScriptUnit.has_extension(unit, "unit_data_system")
+	local breed_name = unit_data and unit_data:breed_name()
+
+	return type(breed_name) == "string" and breed_name or nil
+end
+
+function M.ensure_resolved()
+	if data.resolved_for then
+		return true
+	end
+
+	local breed_name = local_breed_name()
+
+	if not breed_name then
+		return false
+	end
+
+	M.resolve(breed_name)
+
+	return true
 end
 
 function M.face_event_for(event_name)
+	M.ensure_resolved()
+
 	local record = data.by_event and data.by_event[event_name]
 	local item = record and record.item
 

@@ -8,7 +8,6 @@ return {
 			mod_localization = "Vox Semaphore/scripts/mods/Vox Semaphore/Vox Semaphore_localization",
 		})
 	end,
-	version = "1.2",
 	packages = {},
 	load_after = { "SimpleAssets" },
 }

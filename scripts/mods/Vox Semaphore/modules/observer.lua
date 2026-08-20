@@ -593,7 +593,7 @@ function M.install()
 		return false
 	end
 
-	state.unsubscribe = api.on_update(function()
+	state.unsubscribe = api.on_update(consumer_id(), function()
 		dirty = true
 	end)
 

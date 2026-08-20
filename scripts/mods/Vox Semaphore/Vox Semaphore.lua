@@ -1,13 +1,12 @@
 --[[
 Name: Vox Semaphore
 Author: Wobin
-Date: 03/08/2026
-Version: 1.2
+Date: 19/08/2026
 Repository: https://github.com/Wobin/VoxSemaphore
 --]]
 
 local mod = get_mod("Vox Semaphore")
-mod.version = "1.2"
+mod.version = mod.get_metadata and mod:get_metadata("version") or "unknown"
 
 local MODULE_PATH = "Vox Semaphore/scripts/mods/Vox Semaphore/modules/"
 
@@ -188,6 +187,10 @@ mod.on_setting_changed = function()
 	cache_settings()
 end
 
+
+mod.on_settings_reset = function()
+	mod.on_setting_changed()
+end
 mod.on_game_state_changed = function(status, state_name)
 	if state_name ~= "StateGameplay" then
 		return
